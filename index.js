@@ -70,7 +70,8 @@ class DiscordXp {
     if (!userId) throw new TypeError("An user id was not provided.");
     if (!guildId) throw new TypeError("A guild id was not provided.");
     if (xp == 0 || !xp || isNaN(parseInt(xp))) throw new TypeError("An amount of xp was not provided/was invalid.");
-    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: parseInt(xp, 10), level: Math.floor(0.1 * Math.sqrt(user.xp)) } }, { upsert: true }).catch(e => console.log(`Failed to append xp: ${e}`));
+    const userXp = await levels.findOne({ guildId: guildId, userId: userId }).then(x => x?.xp || 0)
+    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: parseInt(xp, 10), level: Math.floor(0.1 * Math.sqrt(userXp + parseInt(xp, 10))) } }, { upsert: true }).catch(e => console.log(`Failed to append xp: ${e}`));
     if (!user) return false;
     return user.level;
   }
@@ -85,7 +86,8 @@ class DiscordXp {
     if (!userId) throw new TypeError("An user id was not provided.");
     if (!guildId) throw new TypeError("A guild id was not provided.");
     if (!levelss) throw new TypeError("An amount of levels was not provided.");
-    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: user.level * user.level * 100, level: parseInt(levelss, 10) } }, { upsert: true }).catch(e => console.log(`Failed to append level: ${e}`));
+    const userLevel = await levels.findOne({ guildId: guildId, userId: userId }).then(x => x?.level || 0)
+    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: userLevel * userLevel * 100, level: parseInt(levelss, 10) } }, { upsert: true }).catch(e => console.log(`Failed to append level: ${e}`));
     if (!user) return false;
     return user;
   }
@@ -162,7 +164,6 @@ class DiscordXp {
     if (!userId) throw new TypeError("An user id was not provided.");
     if (!guildId) throw new TypeError("A guild id was not provided.");
     if (xp == 0 || !xp || isNaN(parseInt(xp))) throw new TypeError("An amount of xp was not provided/was invalid.");
-
     const userE = await levels.findOne({ userId: userId, guildId: guildId });
     const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: (userE?.xp || 0) - xp, level: Math.floor(0.1 * Math.sqrt((userE?.xp || 0) - xp)) } }, { upsert: true }).catch(e => console.log(`Failed to subtract xp: ${e}`));
     if (!user) return false;
@@ -195,9 +196,7 @@ class DiscordXp {
   static async fetchLeaderboard(guildId, limit) {
     if (!guildId) throw new TypeError("A guild id was not provided.");
     if (!limit) throw new TypeError("A limit was not provided.");
-
-    var users = await levels.find({ guildId: guildId }).sort([['xp', 'descending']]).exec();
-
+    let users = await levels.find({ guildId: guildId }).sort([['xp', 'descending']]).exec();
     return users.slice(0, limit);
   }
 
@@ -209,11 +208,8 @@ class DiscordXp {
   static async computeLeaderboard(client, leaderboard, fetchUsers = false) {
     if (!client) throw new TypeError("A client was not provided.");
     if (!leaderboard) throw new TypeError("A leaderboard id was not provided.");
-
     if (leaderboard.length < 1) return [];
-
     const computedArray = [];
-
     if (fetchUsers) {
       for (const key of leaderboard) {
         const user = await client.users.fetch(key.userId) || { username: "Unknown", discriminator: "0000" };
@@ -238,7 +234,6 @@ class DiscordXp {
         discriminator: client.users.cache.get(key.userId) ? client.users.cache.get(key.userId).discriminator : "0000"
       }));
     }
-
     return computedArray;
   }
 
@@ -258,12 +253,9 @@ class DiscordXp {
 
   static async deleteGuild(guildId) {
     if (!guildId) throw new TypeError("A guild id was not provided.");
-
     const guild = await levels.findOne({ guildId: guildId });
     if (!guild) return false;
-
     await levels.deleteMany({ guildId: guildId }).catch(e => console.log(`Failed to delete guild: ${e}`));
-
     return guild;
   }
 }
