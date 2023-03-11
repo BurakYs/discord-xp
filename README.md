@@ -1,4 +1,4 @@
-<p align="center"><a href="https://nodei.co/npm/@burakys/discord-xp/"><img src="https://nodei.co/npm/@burakys/discord-xp.png"></a></p>
+<p align="center"><a href="https://www.npmjs.com/package/@burakys/discord-xp"><img src="https://nodei.co/npm/@burakys/discord-xp.png"></a></p>
 <p align="center"><img src="https://img.shields.io/npm/v/@burakys/discord-xp"> <img src="https://img.shields.io/github/repo-size/BurakYs/discord-xp"> <img src="https://img.shields.io/npm/l/@burakys/discord-xp"> <img src="https://img.shields.io/github/contributors/BurakYs/discord-xp"> <img src="https://img.shields.io/github/package-json/dependency-version/BurakYs/discord-xp/mongoose"></p>
 
 # Discord-Xp
