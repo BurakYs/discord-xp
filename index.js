@@ -71,7 +71,7 @@ class DiscordXp {
     if (!guildId) throw new TypeError("A guild id was not provided.");
     if (xp == 0 || !xp || isNaN(parseInt(xp))) throw new TypeError("An amount of xp was not provided/was invalid.");
     const userXp = await levels.findOne({ guildId: guildId, userId: userId }).then(x => x?.xp || 0)
-    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: parseInt(xp, 10), level: Math.floor(0.1 * Math.sqrt(userXp + parseInt(xp, 10))) } }, { upsert: true }).catch(e => console.log(`Failed to append xp: ${e}`));
+    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: userXp + parseInt(xp, 10), level: Math.floor(0.1 * Math.sqrt(userXp + parseInt(xp, 10))) } }, { upsert: true }).catch(e => console.log(`Failed to append xp: ${e}`));
     if (!user) return false;
     return user.level;
   }
@@ -87,7 +87,7 @@ class DiscordXp {
     if (!guildId) throw new TypeError("A guild id was not provided.");
     if (!levelss) throw new TypeError("An amount of levels was not provided.");
     const userLevel = await levels.findOne({ guildId: guildId, userId: userId }).then(x => x?.level || 0)
-    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: userLevel * userLevel * 100, level: parseInt(levelss, 10) } }, { upsert: true }).catch(e => console.log(`Failed to append level: ${e}`));
+    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: userLevel * userLevel * 100, level: userLevel + parseInt(levelss, 10) } }, { upsert: true }).catch(e => console.log(`Failed to append level: ${e}`));
     if (!user) return false;
     return user;
   }
