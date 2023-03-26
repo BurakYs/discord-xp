@@ -1,7 +1,19 @@
 const mongoose = require("mongoose");
 let levels;
 let mongoUrl;
+const lj = require("./levels.json").levels
 mongoose.set('strictQuery', true)
+function findlevel(xp) {
+  const levels = lj
+  let userLevel = 1;
+  for (let i = 0; i < levels.length; i++) {
+    if (xp < levels[i].requiredXp) {
+      break;
+    }
+    userLevel = levels[i].level;
+  }
+  return userLevel || 0
+}
 class DiscordXp {
 
   /**
@@ -23,9 +35,15 @@ class DiscordXp {
     levels = model
   }
   /**
-* @param {string} [userId] - Discord user id.
-* @param {string} [guildId] - Discord guild id.
-*/
+  * @param {string} [xp] - The user's current xp.
+  */
+  static async findLevel(xp) {
+    return findlevel(xp)
+  }
+  /**
+  * @param {string} [userId] - Discord user id.
+  * @param {string} [guildId] - Discord guild id.
+  */
   static async createUser(userId, guildId) {
     if (!userId) throw new TypeError("An user id was not provided.");
     if (!guildId) throw new TypeError("A guild id was not provided.");
@@ -71,7 +89,7 @@ class DiscordXp {
     if (!guildId) throw new TypeError("A guild id was not provided.");
     if (xp == 0 || !xp || isNaN(parseInt(xp))) throw new TypeError("An amount of xp was not provided/was invalid.");
     const userXp = await levels.findOne({ guildId: guildId, userId: userId }).then(x => x?.xp || 0)
-    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: userXp + parseInt(xp, 10), level: Math.floor(0.1 * Math.sqrt(userXp + parseInt(xp, 10))) } }, { upsert: true }).catch(e => console.log(`Failed to append xp: ${e}`));
+    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: userXp + parseInt(xp, 10), level: findlevel(userXp + parseInt(xp, 10)) } }, { upsert: true }).catch(e => console.log(`Failed to append xp: ${e}`));
     if (!user) return false;
     return user.level;
   }
@@ -87,7 +105,7 @@ class DiscordXp {
     if (!guildId) throw new TypeError("A guild id was not provided.");
     if (!levelss) throw new TypeError("An amount of levels was not provided.");
     const userLevel = await levels.findOne({ guildId: guildId, userId: userId }).then(x => x?.level || 0)
-    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: userLevel * userLevel * 100, level: userLevel + parseInt(levelss, 10) } }, { upsert: true }).catch(e => console.log(`Failed to append level: ${e}`));
+    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: lj.find(x => x.level === userLevel + parseInt(levels, 10))?.requiredXp || 0, level: userLevel + parseInt(levelss, 10) } }, { upsert: true }).catch(e => console.log(`Failed to append level: ${e}`));
     if (!user) return false;
     return user;
   }
@@ -103,7 +121,7 @@ class DiscordXp {
     if (!guildId) throw new TypeError("A guild id was not provided.");
     if (xp == 0 || !xp || isNaN(parseInt(xp))) throw new TypeError("An amount of xp was not provided/was invalid.");
     const userXp = await levels.findOne({ guildId: guildId, userId: userId }).then(x => x?.xp || 0)
-    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: xp, level: Math.floor(0.1 * Math.sqrt(userXp)) } }, { upsert: true }).catch(e => console.log(`Failed to set xp: ${e}`));
+    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: xp, level: findlevel(userXp) } }, { upsert: true }).catch(e => console.log(`Failed to set xp: ${e}`));
     if (!user) return false;
     return user;
   }
@@ -118,7 +136,7 @@ class DiscordXp {
     if (!userId) throw new TypeError("An user id was not provided.");
     if (!guildId) throw new TypeError("A guild id was not provided.");
     if (!level) throw new TypeError("A level was not provided.");
-    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: level * level * 100, level: level } }, { upsert: true }).catch(e => console.log(`Failed to set xp: ${e}`));
+    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: lj.find(x => x.level === level)?.requiredXp || 0, level: level } }, { upsert: true }).catch(e => console.log(`Failed to set xp: ${e}`));
     if (!user) return false;
     return user;
   }
@@ -136,7 +154,7 @@ class DiscordXp {
       userId: userId,
       guildId: guildId
     });
-    if (!user) return false;
+    if (!user) return null;
 
     if (fetchPosition === true) {
       const leaderboard = await levels.find({
@@ -145,8 +163,6 @@ class DiscordXp {
 
       user.position = leaderboard.findIndex(i => i.userId === userId) + 1;
     }
-
-
     /* To be used with canvacord or displaying xp in a pretier fashion, with each level the cleanXp stats from 0 and goes until cleanNextLevelXp when user levels up and gets back to 0 then the cleanNextLevelXp is re-calculated */
     user.cleanXp = user.xp - this.xpFor(user.level);
     user.cleanNextLevelXp = this.xpFor(user.level + 1) - this.xpFor(user.level);
@@ -183,7 +199,7 @@ class DiscordXp {
 
     const userE = await levels.findOne({ userId: userId, guildId: guildId });
     if (!user) return false;
-    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: (userE?.level || 0) * (userE?.level || 0) * 100, level: (userE?.level || 0) * levelss } }, { upsert: true }).catch(e => console.log(`Failed to subtract level: ${e}`));
+    const user = await levels.findOneAndUpdate({ guildId: guildId, userId: userId }, { $set: { xp: lj.find(x => x.level === parseInt(levels, 10))?.requiredXp || 0, level: (userE?.level || 0) - levelss } }, { upsert: true }).catch(e => console.log(`Failed to subtract level: ${e}`));
     return user;
   }
 
@@ -243,8 +259,8 @@ class DiscordXp {
   static xpFor(targetLevel) {
     if (isNaN(targetLevel) || isNaN(parseInt(targetLevel, 10))) throw new TypeError("Target level should be a valid number.");
     if (isNaN(targetLevel)) targetLevel = parseInt(targetLevel, 10);
-    if (targetLevel < 0) throw new RangeError("Target level should be a positive number.");
-    return targetLevel * targetLevel * 100;
+    if (targetLevel < 0) targetLevel = 0
+    return lj.find(x => x.level === targetLevel)?.requiredXp || 0;
   }
 
   /**

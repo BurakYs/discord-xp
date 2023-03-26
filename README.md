@@ -17,8 +17,12 @@ npm update @burakys/discord-xp
 ```
 
 # Changelog
+- **26 March 2023** (v1.2.1) - Make it easier to level up, update README.md
+
 - **11 March 2023** (v1.1.17) - Making database set's better. Inserting automatically if there isn't any.
+
 - **?** (v?) - ?
+
 - **27 May 2021** (v1.1.11) - Adding deleteGuild() method.
 
 - **3 April 2021** (v1.1.11) - Adding TS typings.
